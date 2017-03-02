@@ -11,9 +11,14 @@ import requests
 home_url = "http://www.chemistwarehouse.com.au"
 category_url = '/categories'
 pageSize = 120    # view 120 items per page -> ?size=120
-cat_dict = defaultdict(str)
-product_dict = defaultdict(str) # record all product and its price
 
+exportFileName = 'CW-pricing_%s.txt' % (datetime.now().strftime('%Y%m%d'))
+
+data_dict = defaultdict(str)
+cat_dict = defaultdict(str)
+#product_dict = defaultdict(str) # record all product and its price
+
+data_dict['TimeStamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 def GetSoup(url):
     print(url)
@@ -35,11 +40,11 @@ def FindCategory(content):
     #print(itemName, home_url + itemUrl)
     return itemName, itemUrl
 
-def ProductLister(cat_url, page = 1):
-    #cat_url: full url link of category
-    product_details = defaultdict(defaultdict)
+def ProductLister(product_details, cat_soup, page = 1):
+    #cat_url: full url link of categories
+
     
-    cat_soup = GetSoup( UrlQuery(cat_url, page) )
+    #cat_soup = GetSoup( UrlQuery(cat_url, page) )
     product_box = cat_soup.find_all(class_="product-list-container")
     product_list = product_box[0].find_all('td')
     
@@ -49,17 +54,49 @@ def ProductLister(cat_url, page = 1):
             temp_url = i.find('a', class_="product-container").get('href').strip()
             temp_price = i.find(class_='Price').text.strip()
 
-            product_details[temp_name]['price'] = temp_price
-            product_details[temp_name]['url'] = temp_url
-            product_details[temp_name]['timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            product_details[temp_name] = {'price': temp_price, 'url': temp_url}
+            
         except:
             pass
 
     return product_details
 
+def AllProductLister(cat_url):
+    
+    cat_soup = GetSoup( UrlQuery(cat_url, 1) )      # check out content of 1st page 
+    pager = cat_soup.find(class_="Pager")
+
+    temp_dict = defaultdict(str)
+    temp_dict = ProductLister(temp_dict, cat_soup)   # get 1st page items
+    
+    if pager:
+        #print(pager)
+        print('-'*40)
+            
+        txt_arr = pager.find("b").text.strip().split()
+        tot_page = int(ceil(float(txt_arr[0]) / pageSize))  # get last page number
+
+        print(tot_page)
+        for page in range(tot_page + 1)[2:]:
+            print(page)
+            print('-'*40)
+            cat_soup = GetSoup( UrlQuery(cat_url, page) )
+            temp_dict = ProductLister(temp_dict, cat_soup, page)
+
+        #PrintDicts(temp_dict)
+        print(len(temp_dict))
+
+    return temp_dict
+
 def PrintDicts(dict_input):
     for k, v in dict_input.iteritems():
         print(k, v)
+
+
+def ExportJsonFile(data, fileName):
+    s = json.dumps(data)
+    with open(fileName, 'w') as f:
+        f.write(s)
 
 def main():
 
@@ -69,9 +106,9 @@ def main():
     soup = GetSoup(home_url + category_url)
 
     table_div = soup.find_all(id="p_lt_ctl06_pageplaceholder_p_lt_ctl00_wCM_AMS_tg_tv")
-    
+
     table_tree = table_div[0].find_all('table')
-    #print(table_tree[0])
+
     for table_html in table_tree:
         
         if len(table_html.find_all('td')) == 3:
@@ -80,67 +117,22 @@ def main():
             
             cat_dict[t_name] = home_url + t_url
     
-    """
     
-    # loop for each category
-    
-    for k, v in cat_dict.iteritems():
-        print(k)
-    """   
-    
-    ###    get all category
+    ###    loop for each category
     ###   --------------------------------------
+          
+    products_dict = defaultdict(str)
+    for k, v in cat_dict.iteritems():
+        try:
+            cat_url = cat_dict.get(k)
+            products_dict[k] = AllProductLister(cat_url)
+        except:
+            print("can't get table of", k)
 
-    cat_url = cat_dict.get('Health')
-    
-    #cat_url = cat_dict.get('Veterinary')
-    #print(UrlQuery(cat_url, 1))
-    
-    
+    data_dict['Categories'] = products_dict
 
-
-    ### find out potential pages range
-    
-    cat_soup = GetSoup( UrlQuery(cat_url, 1) )      # check out content of 1st page 
-    pager = cat_soup.find(class_="Pager")
-
-    temp_dict = defaultdict(defaultdict)
-    
-    if pager:
-        #print(pager)
-        txt_arr = pager.find("b").text.strip().split()
-        tot_page = int(ceil(float(txt_arr[0]) / pageSize))
-        
-        #print(tot_page)
-        for page in range(tot_page + 1)[1:]:
-            print(page)
-            print('-'*40)
-            temp_dict = ProductLister(cat_url, page)
-
-            PrintDicts(temp_dict)
-    else:
-        #print("only 1 page")
-        temp_dict = ProductLister(cat_url)
-        
-        PrintDicts(temp_dict)
-    
-
-    """
-    ### soup out all product detail in each page
-    
-    cat_soup = GetSoup( UrlQuery(cat_url, page) )
-    product_box = cat_soup.find_all(class_="product-list-container")
-    product_list = product_box[0].find_all('td')
-    
-    for i in product_list:
-        temp_name = i.find('a', class_="product-container").get('title').strip()
-        temp_url = i.find('a', class_="product-container").get('href').strip()
-        temp_price = i.find(class_='Price').text.strip()
-        
-        print(temp_name, temp_price, temp_url)
-    """
-        
-        
+    ExportJsonFile(data_dict, exportFileName)
+      
 
 if __name__=="__main__":
     main()
