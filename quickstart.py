@@ -2,7 +2,7 @@ from __future__ import print_function
 from bs4 import BeautifulSoup
 from math import ceil
 from collections import defaultdict
-from datetime import datetime
+import time
 import json
 import requests
 
@@ -12,13 +12,6 @@ home_url = "http://www.chemistwarehouse.com.au"
 category_url = '/categories'
 pageSize = 120    # view 120 items per page -> ?size=120
 
-exportFileName = 'CW-pricing_%s.txt' % (datetime.now().strftime('%Y%m%d'))
-
-data_dict = defaultdict(str)
-cat_dict = defaultdict(str)
-#product_dict = defaultdict(str) # record all product and its price
-
-data_dict['TimeStamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 def GetSoup(url):
     print(url)
@@ -54,7 +47,8 @@ def ProductLister(product_details, cat_soup, page = 1):
             temp_url = i.find('a', class_="product-container").get('href').strip()
             temp_price = i.find(class_='Price').text.strip()
 
-            product_details[temp_name] = {'price': temp_price, 'url': temp_url}
+            #product_details[temp_name] = {'price': temp_price, 'url': temp_url}
+            product_details[temp_name] = temp_price
             
         except:
             pass
@@ -100,8 +94,18 @@ def ExportJsonFile(data, fileName):
 
 def main():
 
+    # init
+    exportFileName = './data/CW-pricing_%s.txt' % (time.strftime('%Y%m%d'))
+
+    data_dict = defaultdict(str)
+    cat_dict = defaultdict(str)
+    #product_dict = defaultdict(str) # record all product and its price
+
+    data_dict['TimeStamp'] = time.strftime('%Y-%m-%d %H:%M:%S')
+    
     ###    get all categories
     ###   --------------------------------------
+
     
     soup = GetSoup(home_url + category_url)
 
