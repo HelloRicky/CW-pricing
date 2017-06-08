@@ -1,4 +1,5 @@
-from configparser import ConfigParser
+from six.moves import configparser
+#from configparser import ConfigParser
 
 def read_db_config(filename='config.ini', section='mysql'):
     """ Read database configuration file and return a dictionary object
@@ -7,7 +8,7 @@ def read_db_config(filename='config.ini', section='mysql'):
     :return: a dictionary of database parameters
     """
     # create parser and read ini configuration file
-    parser = ConfigParser()
+    parser = configparser.ConfigParser()
     parser.read(filename)
  
     # get section, default to mysql
