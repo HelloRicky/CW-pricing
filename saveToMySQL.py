@@ -1,8 +1,10 @@
 from __future__ import print_function
-from mysql.connector import MySQLConnection, Error
 from python_mysql_dbconfig import read_db_config
 from dateutil.parser import parse
 import csv
+
+import pymysql
+#from mysql.connector import MySQLConnection, Error
 
 """
 general function for any input query
@@ -13,7 +15,7 @@ def query_fetchone_general(query, args):
     result = []
     try:
         dbconfig = read_db_config()
-        conn = MySQLConnection(**dbconfig)
+        conn = pymysql.connect(**dbconfig)
         cursor = conn.cursor()
         cursor.execute(query, args)
  
@@ -28,8 +30,10 @@ def query_fetchone_general(query, args):
         print(e)
         result = e
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
         
     return result
 
@@ -40,7 +44,7 @@ def query_insert_general(query, args):
      
     try:
         db_config = read_db_config()
-        conn = MySQLConnection(**db_config)
+        conn = pymysql.connect(**db_config)
  
         cursor = conn.cursor()
         cursor.execute(query, args)
@@ -55,8 +59,10 @@ def query_insert_general(query, args):
         print(error)
  
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 """
 check if the product exist, if no add it to database
@@ -133,6 +139,18 @@ def stringToFloat(data, replaceSet = [',', '$']):
         data = data.replace(x, '')
     return float(data)
 
+def sendToMySql(row):
+    product = row[0]
+    dateStamp = row[1][:10]
+    newDate = parse(dateStamp).strftime("%Y-%m-%d")
+    price = row[2]
+
+    if 'Free' == price:
+        float_price = 0
+    else:
+        float_price = stringToFloat(price)
+    insert_price(product, newDate, float_price)
+
 if __name__ == '__main__':
     #connect()
     count = 0
@@ -141,7 +159,6 @@ if __name__ == '__main__':
         content = csv.reader(f)
         for row in content:
             count += 1
-
             product = row[0]
             dateStamp = row[1][:10]
             newDate = parse(dateStamp).strftime("%Y-%m-%d")

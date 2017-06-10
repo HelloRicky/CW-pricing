@@ -5,13 +5,14 @@ from collections import defaultdict
 import time
 import json
 import requests
+from saveToMySQL import sendToMySql
 
 # init
 
 home_url = "http://www.chemistwarehouse.com.au"
 category_url = '/categories'
 pageSize = 120    # view 120 items per page -> ?size=120
-
+TODAY = time.strftime('%Y-%m-%d')
 
 def GetSoup(url):
     print(url)
@@ -49,6 +50,13 @@ def ProductLister(product_details, cat_soup, page = 1):
 
             #product_details[temp_name] = {'price': temp_price, 'url': temp_url}
             product_details[temp_name] = temp_price
+
+
+            """
+            insert to mysql
+            print(temp_name, temp_price)
+            """
+            sendToMySql([temp_name, TODAY, temp_price])
             
         except:
             pass
@@ -133,9 +141,9 @@ def main():
         except:
             print("can't get table of", k)
 
-    data_dict['Categories'] = products_dict
+    #data_dict['Categories'] = products_dict
 
-    ExportJsonFile(data_dict, exportFileName)
+    #ExportJsonFile(data_dict, exportFileName)
       
 
 if __name__=="__main__":
