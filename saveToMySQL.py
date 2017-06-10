@@ -15,7 +15,7 @@ def query_fetchone_general(query, args):
         dbconfig = read_db_config()
         conn = MySQLConnection(**dbconfig)
         cursor = conn.cursor()
-        cursor.execute(query, [args])
+        cursor.execute(query, args)
  
         row = cursor.fetchone()
  
@@ -43,7 +43,7 @@ def query_insert_general(query, args):
         conn = MySQLConnection(**db_config)
  
         cursor = conn.cursor()
-        cursor.execute(query, [args])
+        cursor.execute(query, args)
  
         if cursor.lastrowid:
             print('last insert id', cursor.lastrowid)
@@ -57,65 +57,6 @@ def query_insert_general(query, args):
     finally:
         cursor.close()
         conn.close()
-
-
-
-
-def insert_category(cat_val):
-    query = "INSERT INTO cw_pricing.category (category) VALUES (%s)"
-    args = (cat_val)
-     
-    try:
-        db_config = read_db_config()
-        conn = MySQLConnection(**db_config)
- 
-        cursor = conn.cursor()
-        cursor.execute(query, [args])
- 
-        if cursor.lastrowid:
-            print('last insert id', cursor.lastrowid)
-        else:
-            print('last insert id not found')
- 
-        conn.commit()
-    except Error as error:
-        print(error)
- 
-    finally:
-        cursor.close()
-        conn.close()
-
-"""
-check if the category exist, if no add it to database
-"""
-def insert_category(cat_val):
-
-    # fetch selected category
-    query = "SELECT * FROM cw_pricing.category where category=%s"
-    result = query_fetchone_general(query, (cat_val))
-
-    
-    # return, if the catgory is alreay exist
-    if result:
-        print(result, "already exist")
-        return
-
-    #otherwise insert category
-    insert_action = "INSERT INTO cw_pricing.category (category) VALUES (%s)"
-    query_insert_general(insert_action, (cat_val))
-
-"""
-return the id value
-"""
-def get_category_id(cat_val):
-    query = "SELECT id FROM cw_pricing.category where category=%s"
-    result = query_fetchone_general(query, (cat_val))
-
-    if not result:
-        return 0
-    return result[0][0]
-
-
 
 """
 check if the product exist, if no add it to database
@@ -124,7 +65,8 @@ def insert_product(product):
 
     # fetch selected category
     query = "SELECT * FROM cw_pricing.simple_product where product=%s"
-    result = query_fetchone_general(query, (product))
+    args = (product)
+    result = query_fetchone_general(query, [args])
 
     
     # return, if the catgory is alreay exist
@@ -134,7 +76,8 @@ def insert_product(product):
 
     #otherwise insert category
     insert_action = "INSERT INTO cw_pricing.simple_product (product) VALUES (%s)"
-    query_insert_general(insert_action, (product))
+    args = (product)
+    query_insert_general(insert_action, [args])
 
 
 """
@@ -142,7 +85,8 @@ return the id value
 """
 def get_product_id(product):
     query = "SELECT id FROM cw_pricing.simple_product where product=%s"
-    result = query_fetchone_general(query, (product))
+    args = (product)
+    result = query_fetchone_general(query, [args])
 
     if not result:
         return 0
@@ -157,7 +101,7 @@ def insert_price(product, date, price):
     price => 123.89
     date => yyyy-mm-dd
     """
-    
+
     checkId = get_product_id(product)
     if not checkId:
         # if product doesn't exist then insert it
@@ -165,13 +109,10 @@ def insert_price(product, date, price):
         checkId = get_product_id(product)
 
     
-    
     # fetch selected category
     query = "SELECT * FROM cw_pricing.price where id=%s and dateStamp=%s"
     args = (checkId, date)
     result = query_fetchone_general(query, args)
-
-    print('inserting for id:', checkId, date, price)
     
     # return, if the catgory is alreay exist
     if result:
@@ -200,9 +141,7 @@ if __name__ == '__main__':
         content = csv.reader(f)
         for row in content:
             count += 1
-            
-            if count >= 4:
-                break
+
             product = row[0]
             dateStamp = row[1][:10]
             newDate = parse(dateStamp).strftime("%Y-%m-%d")
@@ -212,10 +151,8 @@ if __name__ == '__main__':
                 float_price = 0
             else:
                 float_price = stringToFloat(price)
-
-
-            print('doing for', product, newDate, float_price)  
             insert_price(product, newDate, float_price)
+            print('working on:', count)
     print('done')
     #insert_category('Confectionery')
     
